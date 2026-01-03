@@ -1320,3 +1320,84 @@ BEGIN
 END $$
 
 DELIMITER ;
+
+-- delete_employee
+DELIMITER ;
+CREATE PROCEDURE delete_employee(IN p_person_id INT)
+BEGIN
+    DELETE FROM people
+    WHERE person_id = p_person_id AND person_type = 'Employe';
+END $$
+DELIMITER ;
+
+-- delete intern
+DELIMITER ;
+CREATE PROCEDURE delete_intern(IN p_intern_id INT) 
+BEGIN
+    DELETE FROM interns
+    WHERE intern_id = p_intern_id;
+END $$
+DELIMITER ;
+
+-- delete candidate
+DELIMITER ;
+CREATE PROCEDURE delete_candidate(IN p_cin VARCHAR(20))
+BEGIN
+    DELETE FROM candidates
+    WHERE cin = p_cin;
+END $$
+DELIMITER ;
+
+-- delete conges
+DELIMITER ;
+CREATE PROCEDURE delete_conge(IN p_conge_id INT)
+BEGIN
+    DELETE FROM conges
+    WHERE conge_id = p_conge_id;
+END $$
+DELIMITER ;
+
+-- delete retired employees
+DELIMITER ;
+CREATE PROCEDURE delete_retired_employee(IN p_retired_id INT)
+BEGIN
+    DELETE FROM retired_employees
+    WHERE retired_id = p_retired_id;
+END $$
+DELIMITER ;
+
+-- delete fired employees
+DELIMITER ;
+CREATE PROCEDURE delete_fired_employee(IN p_fired_id INT)
+BEGIN
+    DELETE FROM fired_employees
+    WHERE fired_id = p_fired_id;
+END $$
+DELIMITER ;
+
+-- delete generation_pdf
+DELIMITER ;
+CREATE PROCEDURE delete_generation_pdf(IN p_pdf_id INT)
+BEGIN
+    DELETE FROM generation_pdf
+    WHERE pdf_id = p_pdf_id;
+END $$
+DELIMITER ;
+
+-- delete department
+DELIMITER ;
+CREATE PROCEDURE delete_department(IN p_department_id INT)
+BEGIN
+    DELETE FROM departments
+    WHERE department_id = p_department_id;
+END $$
+DELIMITER ;
+
+-- delete promotion
+DELIMITER ;
+CREATE PROCEDURE delete_promotion(IN p_promotion_id INT)
+BEGIN
+    DELETE FROM promotions
+    WHERE promotion_id = p_promotion_id;
+END $$
+DELIMITER ;
