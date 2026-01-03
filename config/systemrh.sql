@@ -1318,7 +1318,6 @@ BEGIN
     END IF;
 
 END $$
-
 DELIMITER ;
 
 -- delete_employee
