@@ -14,7 +14,6 @@ CREATE TABLE hr_users (
     phone VARCHAR(20) UNIQUE,
     status ENUM('Active','Inactive') DEFAULT 'Active',
     last_login DATETIME,
-    profile_picture VARCHAR(255)
 );
 
 -- ============================
@@ -1399,4 +1398,206 @@ BEGIN
     DELETE FROM promotions
     WHERE promotion_id = p_promotion_id;
 END $$
+DELIMITER ;
+
+-- update full hr name
+DELIMITER $$
+
+CREATE PROCEDURE UpdateHRFullName(
+    IN p_hr_id INT,
+    IN p_new_full_name VARCHAR(100)
+)
+BEGIN
+    DECLARE user_exists INT;
+    
+    SELECT COUNT(*) INTO user_exists FROM hr_users WHERE hr_id = p_hr_id;
+    
+    IF user_exists = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'HR user not found';
+    END IF;
+    
+    IF p_new_full_name IS NULL OR TRIM(p_new_full_name) = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Full name cannot be empty';
+    END IF;
+    
+    IF LENGTH(p_new_full_name) < 2 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Full name must be at least 2 characters long';
+    END IF;
+    
+    UPDATE hr_users 
+    SET full_name = TRIM(p_new_full_name)
+    WHERE hr_id = p_hr_id;
+    
+    SELECT 'Full name updated successfully' AS message;
+END$$
+
+DELIMITER ;
+
+-- update password for hr
+DELIMITER $$
+
+CREATE PROCEDURE ChangeHRPassword(
+    IN p_hr_id INT,
+    IN p_current_password VARCHAR(255),
+    IN p_new_password VARCHAR(255),
+    IN p_confirm_password VARCHAR(255)
+)
+BEGIN
+    DECLARE user_exists INT;
+    DECLARE stored_password VARCHAR(255);
+    
+    SELECT COUNT(*), password_hash INTO user_exists, stored_password 
+    FROM hr_users WHERE hr_id = p_hr_id;
+    
+    IF user_exists = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'HR user not found';
+    END IF;
+    
+    IF p_current_password IS NULL OR p_current_password != stored_password THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Current password is incorrect';
+    END IF;
+    
+    IF p_new_password IS NULL OR TRIM(p_new_password) = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'New password cannot be empty';
+    END IF;
+    
+    IF LENGTH(p_new_password) < 8 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'New password must be at least 8 characters long';
+    END IF;
+    
+    IF p_new_password != p_confirm_password THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'New password and confirmation do not match';
+    END IF;
+    
+    IF p_new_password = p_current_password THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'New password cannot be the same as current password';
+    END IF;
+    
+    UPDATE hr_users 
+    SET password_hash = p_new_password
+    WHERE hr_id = p_hr_id;
+    
+    SELECT 'Password updated successfully' AS message;
+END$$
+
+DELIMITER ;
+
+-- validate and update hr number
+
+DELIMITER $$
+
+CREATE PROCEDURE UpdateHRPhoneNumber(
+    IN p_hr_id INT,
+    IN p_new_phone VARCHAR(20)
+)
+BEGIN
+    DECLARE user_exists INT;
+    DECLARE phone_exists INT;
+    
+    SELECT COUNT(*) INTO user_exists FROM hr_users WHERE hr_id = p_hr_id;
+    
+    IF user_exists = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'HR user not found';
+    END IF;
+    
+    IF p_new_phone IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Phone number is required';
+    END IF;
+    
+    SET p_new_phone = REPLACE(REPLACE(p_new_phone, ' ', ''), '-', '');
+    
+    IF NOT (
+        p_new_phone REGEXP '^(07|06)[0-9]{8}$' OR 
+        p_new_phone REGEXP '^\\+212[67][0-9]{8}$' OR 
+        p_new_phone REGEXP '^00212[67][0-9]{8}$' OR 
+        p_new_phone REGEXP '^212[67][0-9]{8}$' 
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Invalid Moroccan phone number. Must start with 06, 07, +2126, +2127, 2126, 2127, 002126, or 002127';
+    END IF;
+    
+    SELECT COUNT(*) INTO phone_exists 
+    FROM hr_users 
+    WHERE phone = p_new_phone AND hr_id != p_hr_id;
+    
+    IF phone_exists > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Phone number already exists for another user';
+    END IF;
+    
+    UPDATE hr_users 
+    SET phone = p_new_phone
+    WHERE hr_id = p_hr_id;
+    
+    SELECT 'Phone number updated successfully' AS message;
+END$$
+
+DELIMITER ;
+
+-- update hr status
+DELIMITER $$
+
+CREATE PROCEDURE ChangeHRStatus(
+    IN p_hr_id INT,
+    IN p_new_status ENUM('Active','Inactive')
+)
+BEGIN
+    DECLARE user_exists INT;
+    DECLARE current_status ENUM('Active','Inactive');
+    
+    SELECT COUNT(*), status INTO user_exists, current_status 
+    FROM hr_users WHERE hr_id = p_hr_id;
+    
+    IF user_exists = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'HR user not found';
+    END IF;
+    
+    IF p_new_status NOT IN ('Active', 'Inactive') THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Status must be either Active or Inactive';
+    END IF;
+    
+    IF current_status = p_new_status THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = CONCAT('Status is already set to ', p_new_status);
+    END IF;
+    
+    UPDATE hr_users 
+    SET status = p_new_status
+    WHERE hr_id = p_hr_id;
+    
+    SELECT CONCAT('Status changed to ', p_new_status, ' successfully') AS message;
+END$$
+
+DELIMITER ;
+
+-- display HR profile
+DELIMITER $$
+
+CREATE PROCEDURE DisplayHRDetails(IN p_hr_id INT)
+BEGIN
+    DECLARE user_exists INT;
+    
+    SELECT COUNT(*) INTO user_exists FROM hr_users WHERE hr_id = p_hr_id;
+    
+    IF user_exists = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'HR user not found';
+    END IF;
+    
+    SELECT hr_id,cin, full_name,email,username,phone,status,last_login FROM hr_users WHERE hr_id = p_hr_id;
+END$$
+
 DELIMITER ;
