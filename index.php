@@ -2,5 +2,5 @@
 
 echo "hello world!";
 
-echo ""
+echo "new application";
 ?>
